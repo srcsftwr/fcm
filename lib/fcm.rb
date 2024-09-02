@@ -51,10 +51,7 @@ class FCM
     return if @project_name.empty?
 
     post_body = { 'message': message }
-    extra_headers = {
-      'Authorization' => "Bearer #{jwt_token}"
-    }
-    for_uri(BASE_URI_V1, extra_headers) do |connection|
+    for_uri(BASE_URI_V1) do |connection|
       response = connection.post(
         "#{@project_name}/messages:send", post_body.to_json
       )
@@ -226,7 +223,8 @@ class FCM
     ) do |faraday|
       faraday.adapter Faraday.default_adapter
       faraday.headers["Content-Type"] = "application/json"
-      faraday.headers['Authorization'] = "key=#{@api_key}"
+      faraday.headers["Authorization"] = "Bearer #{jwt_token}"
+      faraday.headers["access_token_auth"]= "true"
       extra_headers.each do |key, value|
         faraday.headers[key] = value
       end
