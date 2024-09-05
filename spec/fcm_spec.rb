@@ -1,21 +1,10 @@
 require "spec_helper"
 
 describe FCM do
-  let(:group_notification_base_uri) { "#{FCM::GROUP_NOTIFICATION_BASE_URI}/gcm/notification" }
-  let(:api_key) { "LEGACY_KEY" }
-  let(:registration_id) { "42" }
-  let(:registration_ids) { ["42"] }
-  let(:key_name) { "appUser-Chris" }
-  let(:project_id) { "123456789" } # https://developers.google.com/cloud-messaging/gcm#senderid
-  let(:notification_key) { "APA91bGHXQBB...9QgnYOEURwm0I3lmyqzk2TXQ" }
-  let(:valid_topic) { "TopicA" }
-  let(:invalid_topic) { "TopicA$" }
-  let(:valid_condition) { "'TopicA' in topics && ('TopicB' in topics || 'TopicC' in topics)" }
-  let(:invalid_condition) { "'TopicA' in topics and some other text ('TopicB' in topics || 'TopicC' in topics)" }
-  let(:invalid_condition_topic) { "'TopicA$' in topics" }
-
   let(:project_name) { 'test-project' }
   let(:json_key_path) { 'path/to/json/key.json' }
+  let(:api_key) { "LEGACY_KEY" }
+  let(:client) { FCM.new(api_key, json_key_path) }
 
   let(:mock_token) { "access_token" }
   let(:mock_headers) do
@@ -26,13 +15,15 @@ describe FCM do
   end
 
   before do
+    allow(client).to receive(:json_key)
+
     # Mock the Google::Auth::ServiceAccountCredentials
     allow(Google::Auth::ServiceAccountCredentials).to receive(:make_creds).
       and_return(double(fetch_access_token!: { 'access_token' => mock_token }))
   end
 
   it "should initialize" do
-    expect { FCM.new(api_key, json_key_path) }.not_to raise_error
+    expect { client }.not_to raise_error
   end
 
   describe "credentials path" do
@@ -51,31 +42,6 @@ describe FCM do
     let(:client) { FCM.new(api_key, json_key_path, project_name) }
 
     let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
-    let(:send_v1_params) do
-      {
-        'token' => '4sdsx',
-        'notification' => {
-          'title' => 'Breaking News',
-          'body' => 'New news story available.'
-        },
-        'data' => {
-          'story_id' => 'story_12345'
-        },
-        'android' => {
-          'notification' => {
-            'click_action' => 'TOP_STORY_ACTIVITY',
-            'body' => 'Check out the Top Story'
-          }
-        },
-        'apns' => {
-          'payload' => {
-            'aps' => {
-              'category' => 'NEW_MESSAGE_CATEGORY'
-            }
-          }
-        }
-      }
-    end
 
     let(:stub_fcm_send_v1_request) do
       stub_request(:post, uri).with(
@@ -90,30 +56,136 @@ describe FCM do
     end
 
     before do
-      allow(client).to receive(:json_key)
-
       stub_fcm_send_v1_request
     end
 
-    it 'should send notification of HTTP V1 using POST to FCM server' do
-      client.send_v1(send_v1_params).should eq(
-        response: 'success', body: '{}', headers: {}, status_code: 200
-      )
-      stub_fcm_send_v1_request.should have_been_made.times(1)
+    shared_examples "succesfuly send notification" do
+      it 'should send notification of HTTP V1 using POST to FCM server' do
+        client.send_v1(send_v1_params).should eq(
+          response: 'success', body: '{}', headers: {}, status_code: 200
+        )
+        stub_fcm_send_v1_request.should have_been_made.times(1)
+      end
+    end
+
+    describe "send to token" do
+      let(:token) { '4sdsx' }
+      let(:send_v1_params) do
+        {
+          'token' => token,
+          'notification' => {
+            'title' => 'Breaking News',
+            'body' => 'New news story available.'
+          },
+          'data' => {
+            'story_id' => 'story_12345'
+          },
+          'android' => {
+            'notification' => {
+              'click_action' => 'TOP_STORY_ACTIVITY',
+              'body' => 'Check out the Top Story'
+            }
+          },
+          'apns' => {
+            'payload' => {
+              'aps' => {
+                'category' => 'NEW_MESSAGE_CATEGORY'
+              }
+            }
+          }
+        }
+      end
+
+      include_examples "succesfuly send notification"
+    end
+
+    describe "send to topic" do
+      let(:topic) { 'news' }
+      let(:send_v1_params) do
+        {
+          'topic' => topic,
+          'notification' => {
+            'title' => 'Breaking News',
+            'body' => 'New news story available.'
+          },
+        }
+      end
+
+      include_examples "succesfuly send notification"
+
+      context "when topic is invalid" do
+        let(:topic) { '/topics/news$' }
+
+        it 'should raise error' do
+          stub_fcm_send_v1_request.should_not have_been_requested
+        end
+      end
+    end
+  end
+
+  describe '#send_with_notification_key' do
+    let(:notification_key) { 'notification_key_123' }
+    let(:message_options) do
+      {
+        notification: {
+          title: 'Group Notification',
+          body: 'This is a test group notification'
+        },
+        data: {
+          key1: 'value1',
+          key2: 'value2'
+        }
+      }
+    end
+
+    it 'sends a group notification successfully' do
+      expected_body = {
+        to: notification_key,
+        notification: {
+          title: 'Group Notification',
+          body: 'This is a test group notification'
+        },
+        data: {
+          key1: 'value1',
+          key2: 'value2'
+        }
+      }
+
+      stub_request(:post, "#{FCM::BASE_URI}/fcm/send")
+        .with(
+          body: expected_body.to_json,
+          headers: mock_headers
+        )
+        .to_return(status: 200, body: '{"message_id": 987654321, "success": 3, "failure": 0}', headers: {})
+
+      response = client.send_with_notification_key(notification_key, message_options)
+
+      expect(response[:status_code]).to eq(200)
+      expect(response[:response]).to eq('success')
+      parsed_body = JSON.parse(response[:body])
+      expect(parsed_body['message_id']).to eq(987654321)
+      expect(parsed_body['success']).to eq(3)
+      expect(parsed_body['failure']).to eq(0)
+    end
+
+    it 'handles errors when sending a group notification' do
+      stub_request(:post, "#{FCM::BASE_URI}/fcm/send")
+        .to_return(status: 400, body: '{"error": "InvalidRegistration"}', headers: {})
+
+      response = client.send_with_notification_key(notification_key, message_options)
+
+      expect(response[:status_code]).to eq(400)
+      expect(response[:response]).to eq('Only applies for JSON requests. Indicates that the request could not be parsed as JSON, or it contained invalid fields.')
+      expect(JSON.parse(response[:body])['error']).to eq('InvalidRegistration')
     end
   end
 
   describe "#get_instance_id_info" do
     subject(:get_info) { client.get_instance_id_info(registration_id, options) }
 
-    let(:client) { FCM.new(api_key, json_key_path) }
     let(:options) { nil }
     let(:base_uri) { "#{FCM::INSTANCE_ID_API}/iid/info" }
     let(:uri) { "#{base_uri}/#{registration_id}" }
-
-    before do
-      allow(client).to receive(:json_key)
-    end
 
     context 'without options' do
       it 'calls info endpoint' do
@@ -139,13 +211,8 @@ describe FCM do
     describe "#subscribe_instance_id_to_topic" do
       subject(:subscribe) { client.subscribe_instance_id_to_topic(registration_id, valid_topic) }
 
-      let(:client) { FCM.new(api_key, json_key_path) }
       let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchAdd" }
       let(:params) { { to: "/topics/#{valid_topic}", registration_tokens: [registration_id] } }
-
-      before do
-        allow(client).to receive(:json_key)
-      end
 
       it 'subscribes to a topic' do
         endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
@@ -157,13 +224,8 @@ describe FCM do
     describe "#unsubscribe_instance_id_from_topic" do
       subject(:unsubscribe) { client.unsubscribe_instance_id_from_topic(registration_id, valid_topic) }
 
-      let(:client) { FCM.new(api_key, json_key_path) }
       let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchRemove" }
       let(:params) { { to: "/topics/#{valid_topic}", registration_tokens: [registration_id] } }
-
-      before do
-        allow(client).to receive(:json_key)
-      end
 
       it 'unsubscribes from a topic' do
         endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
