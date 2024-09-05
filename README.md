@@ -100,32 +100,6 @@ message = {
 fcm.send_v1(message)
 ```
 
-## HTTP Legacy Version
-
-To migrate to HTTP v1 see: https://firebase.google.com/docs/cloud-messaging/migrate-v1
-
-For your server to send a message to one or more devices, you must first initialise a new `FCM` class with your Firebase Cloud Messaging server key, and then call the `send` method on this and give it 1 or more (up to 1000) registration tokens as an array of strings. You can also optionally send further [HTTP message parameters](https://firebase.google.com/docs/cloud-messaging/http-server-ref) like `data` or `time_to_live` etc. as a hash via the second optional argument to `send`.
-
-Example sending notifications:
-
-```ruby
-require 'fcm'
-
-fcm = FCM.new("my_server_key")
-
-registration_ids= ["12", "13"] # an array of one or more client registration tokens
-
-# See https://firebase.google.com/docs/cloud-messaging/http-server-ref for all available options.
-options = { "notification": {
-              "title": "Portugal vs. Denmark",
-              "body": "5 to 1"
-          }
-}
-response = fcm.send(registration_ids, options)
-```
-
-Currently `response` is just a hash containing the response `body`, `headers` and `status_code`. Check [here](https://firebase.google.com/docs/cloud-messaging/server#response) to see how to interpret the responses.
-
 ## Device Group Messaging
 
 With [device group messaging](https://firebase.google.com/docs/cloud-messaging/notifications), you can send a single message to multiple instance of an app running on devices belonging to a group. Typically, "group" refers a set of different devices that belong to a single user. However, a group could also represent a set of devices where the app instance functions in a highly correlated manner. To use this feature, you will first need an initialised `FCM` class.
@@ -244,6 +218,9 @@ You can find a guide to implement an Android Client app to receive notifications
 The guide to set up an iOS app to get notifications is here: [Setting up a FCM Client App on iOS](https://firebase.google.com/docs/cloud-messaging/ios/client).
 
 ## ChangeLog
+
+### 2.0.0
+- Remove deprecated `send` method (Breaking change)
 
 ### 1.0.8
 - caches calls to `Google::Auth::ServiceAccountCredentials` #103
