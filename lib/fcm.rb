@@ -12,11 +12,14 @@ class FCM
   INSTANCE_ID_API = "https://iid.googleapis.com"
   TOPIC_REGEX = /[a-zA-Z0-9\-_.~%]+/
 
-  def initialize(api_key, json_key_path = "", project_name = "", client_options = {})
-    @api_key = api_key
-    @client_options = client_options
+  def initialize(_api_key = nil, json_key_path = "", project_name = "", client_options = {})
     @json_key_path = json_key_path
     @project_name = project_name
+    @client_options = client_options
+
+    warn <<-WARNING
+      [DEPRECATION] The use of api_key is deprecated. Please use the Credentials instead.
+    WARNING
   end
 
   # See https://firebase.google.com/docs/cloud-messaging/send-message
@@ -43,7 +46,7 @@ class FCM
   #     }
   #   }
   # }
-  # fcm = FCM.new(api_key, json_key_path, project_name)
+  # fcm = FCM.new(_api_key, json_key_path, project_name)
   # fcm.send_v1(
   #    { "token": "4sdsx",, "to" : "notification": {}.. }
   # )
@@ -60,29 +63,6 @@ class FCM
   end
 
   alias send_v1 send_notification_v1
-
-  # See https://developers.google.com/cloud-messaging/http for more details.
-  # { "notification": {
-  #  "title": "Portugal vs. Denmark",
-  #  "text": "5 to 1"
-  # },
-  # "to" : "bk3RNwTe3H0:CI2k_HHwgIpoDKCIZvvDMExUdFQ3P1..."
-  # }
-  # fcm = FCM.new("API_KEY")
-  # fcm.send(
-  #    ["4sdsx", "8sdsd"], # registration_ids
-  #    { "notification": { "title": "Portugal vs. Denmark", "text": "5 to 1" }, "to" : "bk3RNwTe3HdFQ3P1..." }
-  # )
-  def send_notification(registration_ids, options = {})
-    post_body = build_post_body(registration_ids, options)
-
-    for_uri(BASE_URI) do |connection|
-      response = connection.post("/fcm/send", post_body.to_json)
-      build_response(response, registration_ids)
-    end
-  end
-
-  alias send send_notification
 
   def create_notification_key(key_name, project_id, registration_ids = [])
     post_body = build_post_body(registration_ids, operation: "create",
