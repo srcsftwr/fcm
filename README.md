@@ -219,7 +219,7 @@ The guide to set up an iOS app to get notifications is here: [Setting up a FCM C
 
 ## ChangeLog
 
-### 2.0.0
+### xxx
 - Remove deprecated `send` method (Breaking change)
 
 ### 1.0.8
