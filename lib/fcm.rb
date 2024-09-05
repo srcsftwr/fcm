@@ -12,14 +12,9 @@ class FCM
   INSTANCE_ID_API = "https://iid.googleapis.com"
   TOPIC_REGEX = /[a-zA-Z0-9\-_.~%]+/
 
-  def initialize(_api_key = nil, json_key_path = "", project_name = "", client_options = {})
+  def initialize(_api_key = nil, json_key_path = "", project_name = "")
     @json_key_path = json_key_path
     @project_name = project_name
-    @client_options = client_options
-
-    warn <<-WARNING
-      [DEPRECATION] The use of api_key is deprecated. Please use the Credentials instead.
-    WARNING
   end
 
   # See https://firebase.google.com/docs/cloud-messaging/send-message
