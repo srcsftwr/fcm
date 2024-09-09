@@ -269,9 +269,16 @@ The guide to set up an iOS app to get notifications is here: [Setting up a FCM C
 ## ChangeLog
 
 ### 2.0.0
-- Remove deprecated `API_KEY` (Breaking change)
-- Remove deprecated `send` method (Breaking change)
-- Remove deprecated `send_with_notification_key` method (Breaking change)
+#### Breaking Changes
+- Remove deprecated `API_KEY`
+- Remove deprecated `send` method
+- Remove deprecated `send_with_notification_key` method
+- Remove `subscribe_instance_id_to_topic` method
+- Remove `unsubscribe_instance_id_from_topic` method
+- Remove `batch_subscribe_instance_ids_to_topic` method
+- Remove `batch_unsubscribe_instance_ids_from_topic` method
+
+#### Supported Features
 - Add HTTP v1 API support for `send_to_topic_condition` method
 - Add HTTP v1 API support for `send_to_topic` method
 
