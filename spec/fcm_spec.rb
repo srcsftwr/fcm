@@ -222,12 +222,12 @@ describe FCM do
   end
 
   describe "#get_instance_id_info" do
-    subject(:get_info) { client.get_instance_id_info(registration_id, options) }
+    subject(:get_info) { client.get_instance_id_info(registration_token, options) }
 
     let(:options) { nil }
     let(:base_uri) { "#{FCM::INSTANCE_ID_API}/iid/info" }
-    let(:uri) { "#{base_uri}/#{registration_id}" }
-    let(:registration_id) { "42" }
+    let(:uri) { "#{base_uri}/#{registration_token}" }
+    let(:registration_token) { "42" }
 
     context 'without options' do
       it 'calls info endpoint' do
@@ -238,7 +238,7 @@ describe FCM do
     end
 
     context 'with detail option' do
-      let(:uri) { "#{base_uri}/#{registration_id}?details=true" }
+      let(:uri) { "#{base_uri}/#{registration_token}?details=true" }
       let(:options) { { details: true } }
 
       it 'calls info endpoint' do
@@ -251,30 +251,57 @@ describe FCM do
 
   describe "topic subscriptions" do
     let(:topic) { 'news' }
-    let(:registration_id) { "42" }
+    let(:registration_token) { "42" }
+    let(:registration_token_2) { "43" }
+    let(:registration_tokens) { [registration_token, registration_token_2] }
 
-    describe "#subscribe_instance_id_to_topic" do
-      subject(:subscribe) { client.subscribe_instance_id_to_topic(registration_id, topic) }
+    describe "#topic_subscription" do
+      subject(:subscribe) { client.topic_subscription(topic, registration_token) }
 
-      let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchAdd" }
-      let(:params) { { to: "/topics/#{topic}", registration_tokens: [registration_id] } }
+      let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1/#{registration_token}/rel/topics/#{topic}" }
 
       it 'subscribes to a topic' do
-        endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
+        endpoint = stub_request(:post, uri).with(headers: mock_headers)
         subscribe
         expect(endpoint).to have_been_requested
       end
     end
 
-    describe "#unsubscribe_instance_id_from_topic" do
-      subject(:unsubscribe) { client.unsubscribe_instance_id_from_topic(registration_id, topic) }
+    describe "#topic_unsubscription" do
+      subject(:unsubscribe) { client.topic_unsubscription(topic, registration_token) }
 
       let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchRemove" }
-      let(:params) { { to: "/topics/#{topic}", registration_tokens: [registration_id] } }
+      let(:params) { { to: "/topics/#{topic}", registration_tokens: [registration_token] } }
 
       it 'unsubscribes from a topic' do
         endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
         unsubscribe
+        expect(endpoint).to have_been_requested
+      end
+    end
+
+    describe "#batch_topic_subscription" do
+      subject(:batch_subscribe) { client.batch_topic_subscription(topic, registration_tokens) }
+
+      let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchAdd" }
+      let(:params) { { to: "/topics/#{topic}", registration_tokens: registration_tokens } }
+
+      it 'subscribes to a topic' do
+        endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
+        batch_subscribe
+        expect(endpoint).to have_been_requested
+      end
+    end
+
+    describe "#batch_topic_unsubscription" do
+      subject(:batch_unsubscribe) { client.batch_topic_unsubscription(topic, registration_tokens) }
+
+      let(:uri) { "#{FCM::INSTANCE_ID_API}/iid/v1:batchRemove" }
+      let(:params) { { to: "/topics/#{topic}", registration_tokens: registration_tokens } }
+
+      it 'unsubscribes from a topic' do
+        endpoint = stub_request(:post, uri).with(body: params.to_json, headers: mock_headers)
+        batch_unsubscribe
         expect(endpoint).to have_been_requested
       end
     end
