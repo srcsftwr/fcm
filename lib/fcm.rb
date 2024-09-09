@@ -122,23 +122,27 @@ class FCM
     end
   end
 
-  def topic_subscription(topic, registration_id)
+  def topic_subscription(topic, registration_token)
     for_uri(INSTANCE_ID_API) do |connection|
-      response = connection.post("/iid/v1/#{registration_id}/rel/topics/#{topic}")
+      response = connection.post("/iid/v1/#{registration_token}/rel/topics/#{topic}")
       build_response(response)
     end
   end
 
-  def batch_topic_subscription(topic, registration_ids)
-    manage_topics_relationship(topic, registration_ids, "Add")
+  def topic_unsubscription(topic, registration_token)
+    batch_topic_unsubscription(topic, [registration_token])
   end
 
-  def batch_topic_unsubscription(topic, registration_ids)
-    manage_topics_relationship(topic, registration_ids, "Remove")
+  def batch_topic_subscription(topic, registration_tokens)
+    manage_topics_relationship(topic, registration_tokens, "Add")
   end
 
-  def manage_topics_relationship(topic, registration_ids, action)
-    body = { to: "/topics/#{topic}", registration_tokens: registration_ids }
+  def batch_topic_unsubscription(topic, registration_tokens)
+    manage_topics_relationship(topic, registration_tokens, "Remove")
+  end
+
+  def manage_topics_relationship(topic, registration_tokens, action)
+    body = { to: "/topics/#{topic}", registration_tokens: registration_tokens }
 
     for_uri(INSTANCE_ID_API) do |connection|
       response = connection.post("/iid/v1:batch#{action}", body.to_json)
@@ -153,22 +157,6 @@ class FCM
       response = connection.get("/iid/info/" + iid_token, params)
       build_response(response)
     end
-  end
-
-  def subscribe_instance_id_to_topic(iid_token, topic_name)
-    batch_subscribe_instance_ids_to_topic([iid_token], topic_name)
-  end
-
-  def unsubscribe_instance_id_from_topic(iid_token, topic_name)
-    batch_unsubscribe_instance_ids_from_topic([iid_token], topic_name)
-  end
-
-  def batch_subscribe_instance_ids_to_topic(instance_ids, topic_name)
-    manage_topics_relationship(topic_name, instance_ids, "Add")
-  end
-
-  def batch_unsubscribe_instance_ids_from_topic(instance_ids, topic_name)
-    manage_topics_relationship(topic_name, instance_ids, "Remove")
   end
 
   def send_to_topic(topic, options = {})
