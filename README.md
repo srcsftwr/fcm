@@ -27,7 +27,6 @@ To use this gem, you need to instantiate a client with your firebase credentials
 
 ```ruby
 fcm = FCM.new(
-  API_TOKEN,
   GOOGLE_APPLICATION_CREDENTIALS_PATH,
   FIREBASE_PROJECT_ID
 )
@@ -40,7 +39,6 @@ The easiest way to provide them is to pass here an absolute path to a file with 
 
 ```ruby
 fcm = FCM.new(
-  API_TOKEN,
   '/path/to/credentials.json',
   FIREBASE_PROJECT_ID
 )
@@ -50,7 +48,6 @@ As per their secret nature, you might not want to have them in your repository. 
 
 ```ruby
 fcm = FCM.new(
-  API_TOKEN,
   StringIO.new(ENV.fetch('FIREBASE_CREDENTIALS')),
   FIREBASE_PROJECT_ID
 )
@@ -65,13 +62,13 @@ To migrate to HTTP v1 see: https://firebase.google.com/docs/cloud-messaging/migr
 
 ```ruby
 fcm = FCM.new(
-  API_TOKEN,
   GOOGLE_APPLICATION_CREDENTIALS_PATH,
   FIREBASE_PROJECT_ID
 )
 message = {
-  'topic': "89023", # OR token if you want to send to a specific device
-  # 'token': "000iddqd",
+  'token': "000iddqd", # send to a specific device
+  # 'topic': "yourTopic",
+  # 'condition': "'TopicA' in topics && ('TopicB' in topics || 'TopicC' in topics)",
   'data': {
     payload: {
       data: {
@@ -97,7 +94,7 @@ message = {
   }
 }
 
-fcm.send_v1(message)
+fcm.send_v1(message) # or fcm.send_notification_v1(message)
 ```
 
 ## Device Group Messaging
@@ -115,14 +112,18 @@ params = {key_name: "appUser-Chris",
 response = fcm.create(*params.values)
 ```
 
-### Send to Notification Key
+### Send to Notification device group
 
-Now you can send a message to a particular `notification_key` via the `send_with_notification_key` method. This allows the server to send a single [data](https://firebase.google.com/docs/cloud-messaging/concept-options#data_messages) payload or/and [notification](https://firebase.google.com/docs/cloud-messaging/concept-options#notifications) payload to multiple app instances (typically on multiple devices) owned by a single user (instead of sending to some registration tokens). Note: the maximum number of members allowed for a `notification_key` is 20.
+To send messages to device groups, use the HTTP v1 API,
+Sending messages to a device group is very similar to sending messages to an individual device, using the same method to authorize send requests. Set the token field to the group notification key
 
 ```ruby
-response = fcm.send_with_notification_key("notification_key",
-            data: {score: "3x1"},
-            collapse_key: "updated_score")
+message = {
+  'token': "NOTIFICATION_KEY", # send to a device group
+  # ...data
+}
+
+fcm.send_v1(message)
 ```
 
 ### Add/Remove Registration Tokens
@@ -145,23 +146,51 @@ response = fcm.remove(*params.values)
 
 ## Send Messages to Topics
 
-FCM [topic messaging](https://firebase.google.com/docs/cloud-messaging/topic-messaging) allows your app server to send a message to multiple devices that have opted in to a particular topic. Based on the publish/subscribe model, topic messaging supports unlimited subscriptions per app. Sending to a topic is very similar to sending to an individual device or to a user group, in the sense that you can use the `fcm.send_with_notification_key()` method where the `notification_key` matches the regular expression `"/topics/[a-zA-Z0-9-_.~%]+"`:
+FCM [topic messaging](https://firebase.google.com/docs/cloud-messaging/topic-messaging) allows your app server to send a message to multiple devices that have opted in to a particular topic. Based on the publish/subscribe model, one app instance can be subscribed to no more than 2000 topics. Sending to a topic is very similar to sending to an individual device or to a user group, in the sense that you can use the `fcm.send_v1` method where the `topic` matches the regular expression `"/topics/[a-zA-Z0-9-_.~%]+"`:
 
 ```ruby
-response = fcm.send_with_notification_key("/topics/yourTopic",
-            notification: {body: "This is a FCM Topic Message!"})
+message = {
+  'topic': "yourTopic", # send to a device group
+  # ...data
+}
+
+fcm.send_v1(message)
 ```
 
-Or you can use the helper:
+Or you can use the `fcm.send_to_topic` helper:
 
 ```ruby
 response = fcm.send_to_topic("yourTopic",
             notification: {body: "This is a FCM Topic Message!"})
 ```
 
+## Send Messages to Topics with Conditions
+
+FCM [topic condition messaging](https://firebase.google.com/docs/cloud-messaging/android/topic-messaging#build_send_requests) to send a message to a combination of topics, specify a condition, which is a boolean expression that specifies the target topics.
+
+```ruby
+message = {
+  'condition': "'TopicA' in topics && ('TopicB' in topics || 'TopicC' in topics)", # send to topic condition
+  # ...data
+}
+
+fcm.send_v1(message)
+```
+
+Or you can use the `fcm.send_to_topic_condition` helper:
+
+```ruby
+response = fcm.send_to_topic_condition(
+  "'TopicA' in topics && ('TopicB' in topics || 'TopicC' in topics)",
+  notification: {
+    body: "This is an FCM Topic Message sent to a condition!"
+  }
+)
+```
+
 ### Sending to Multiple Topics
 
-To send to combinations of multiple topics, the FCM [docs](https://firebase.google.com/docs/cloud-messaging/send-message#send_messages_to_topics_2) require that you set a **condition** key (instead of the `to:` key) to a boolean condition that specifies the target topics. For example, to send messages to devices that subscribed to _TopicA_ and either _TopicB_ or _TopicC_:
+To send to combinations of multiple topics, require that you set a **condition** key to a boolean condition that specifies the target topics. For example, to send messages to devices that subscribed to _TopicA_ and either _TopicB_ or _TopicC_:
 
 ```
 'TopicA' in topics && ('TopicB' in topics || 'TopicC' in topics)
@@ -197,18 +226,38 @@ Given a registration token and a topic name, you can add the token to the topic 
 
 ```ruby
 topic = "YourTopic"
-registration_id= "12" # a client registration tokens
-response = fcm.topic_subscription(topic, registration_id)
+registration_token= "12" # a client registration token
+response = fcm.topic_subscription(topic, registration_token)
+# or unsubscription
+response = fcm.topic_unsubscription(topic, registration_token)
 ```
 
 Or you can manage relationship maps for multiple app instances [Google Instance ID server API. Manage relationship](https://developers.google.com/instance-id/reference/server#manage_relationship_maps_for_multiple_app_instances)
 
 ```ruby
 topic = "YourTopic"
-registration_ids= ["4", "8", "15", "16", "23", "42"] # an array of one or more client registration tokens
-response = fcm.batch_topic_subscription(topic, registration_ids)
+registration_tokens= ["4", "8", "15", "16", "23", "42"] # an array of one or more client registration tokens
+response = fcm.batch_topic_subscription(topic, registration_tokens)
 # or unsubscription
-response = fcm.batch_topic_unsubscription(topic, registration_ids)
+response = fcm.batch_topic_unsubscription(topic, registration_tokens)
+```
+
+## Get Information about the Instance ID
+
+Given a registration token, you can retrieve information about the token using the [Google Instance ID server API](https://developers.google.com/instance-id/reference/server).
+
+```ruby
+registration_token= "12" # a client registration token
+response = fcm.get_instance_id_info(registration_token)
+```
+
+To get detailed information about the instance ID, you can pass an optional
+`options` hash to the `get_instance_id_info` method:
+
+```ruby
+registration_token= "12" # a client registration token
+options = { "details" => true }
+response = fcm.get_instance_id_info(registration_token, options)
 ```
 
 ## Mobile Clients
@@ -219,8 +268,12 @@ The guide to set up an iOS app to get notifications is here: [Setting up a FCM C
 
 ## ChangeLog
 
-### xxx
+### 2.0.0
+- Remove deprecated `API_KEY` (Breaking change)
 - Remove deprecated `send` method (Breaking change)
+- Remove deprecated `send_with_notification_key` method (Breaking change)
+- Add HTTP v1 API support for `send_to_topic_condition` method
+- Add HTTP v1 API support for `send_to_topic` method
 
 ### 1.0.8
 - caches calls to `Google::Auth::ServiceAccountCredentials` #103
