@@ -3,8 +3,7 @@ require "spec_helper"
 describe FCM do
   let(:project_name) { 'test-project' }
   let(:json_key_path) { 'path/to/json/key.json' }
-  let(:api_key) { "LEGACY_KEY" }
-  let(:client) { FCM.new(api_key, json_key_path) }
+  let(:client) { FCM.new(json_key_path) }
 
   let(:mock_token) { "access_token" }
   let(:mock_headers) do
@@ -28,18 +27,18 @@ describe FCM do
 
   describe "credentials path" do
     it "can be a path to a file" do
-      fcm = FCM.new("test", "README.md")
+      fcm = FCM.new("README.md")
       expect(fcm.__send__(:json_key).class).to eq(File)
     end
 
     it "can be an IO object" do
-      fcm = FCM.new("test", StringIO.new("hey"))
+      fcm = FCM.new(StringIO.new("hey"))
       expect(fcm.__send__(:json_key).class).to eq(StringIO)
     end
   end
 
   describe "#send_v1 or #send_notification_v1" do
-    let(:client) { FCM.new(api_key, json_key_path, project_name) }
+    let(:client) { FCM.new(json_key_path, project_name) }
 
     let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
 
@@ -139,7 +138,7 @@ describe FCM do
   end
 
   describe "#send_to_topic" do
-    let(:client) { FCM.new(api_key, json_key_path, project_name) }
+    let(:client) { FCM.new(json_key_path, project_name) }
 
     let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
 
@@ -181,7 +180,7 @@ describe FCM do
   end
 
   describe "#send_to_topic_condition" do
-    let(:client) { FCM.new(api_key, json_key_path, project_name) }
+    let(:client) { FCM.new(json_key_path, project_name) }
 
     let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
 

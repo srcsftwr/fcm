@@ -12,7 +12,7 @@ class FCM
   INSTANCE_ID_API = "https://iid.googleapis.com"
   TOPIC_REGEX = /[a-zA-Z0-9\-_.~%]+/
 
-  def initialize(_api_key = nil, json_key_path = "", project_name = "")
+  def initialize(json_key_path = "", project_name = "")
     @json_key_path = json_key_path
     @project_name = project_name
   end
@@ -41,7 +41,7 @@ class FCM
   #     }
   #   }
   # }
-  # fcm = FCM.new(_api_key, json_key_path, project_name)
+  # fcm = FCM.new(json_key_path, project_name)
   # fcm.send_v1(
   #    { "token": "4sdsx",, "to" : "notification": {}.. }
   # )
