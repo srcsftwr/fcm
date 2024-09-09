@@ -122,11 +122,6 @@ class FCM
     end
   end
 
-  def send_with_notification_key(notification_key, options = {})
-    body = { to: notification_key }.merge(options)
-    execute_notification(body)
-  end
-
   def topic_subscription(topic, registration_id)
     for_uri(INSTANCE_ID_API) do |connection|
       response = connection.post("/iid/v1/#{registration_id}/rel/topics/#{topic}")
@@ -148,12 +143,6 @@ class FCM
     for_uri(INSTANCE_ID_API) do |connection|
       response = connection.post("/iid/v1:batch#{action}", body.to_json)
       build_response(response)
-    end
-  end
-
-  def send_to_topic(topic, options = {})
-    if topic.gsub(TOPIC_REGEX, "").length == 0
-      send_with_notification_key("/topics/" + topic, options)
     end
   end
 
@@ -182,10 +171,29 @@ class FCM
     manage_topics_relationship(topic_name, instance_ids, "Remove")
   end
 
+  def send_to_topic(topic, options = {})
+    if topic.gsub(TOPIC_REGEX, "").length == 0
+      body = { 'message': { 'topic': topic }.merge(options) }
+
+      for_uri(BASE_URI_V1) do |connection|
+        response = connection.post(
+          "#{@project_name}/messages:send", body.to_json
+        )
+        build_response(response)
+      end
+    end
+  end
+
   def send_to_topic_condition(condition, options = {})
     if validate_condition?(condition)
-      body = { condition: condition }.merge(options)
-      execute_notification(body)
+      body = { 'message': { 'condition': condition }.merge(options) }
+
+      for_uri(BASE_URI_V1) do |connection|
+        response = connection.post(
+          "#{@project_name}/messages:send", body.to_json
+        )
+        build_response(response)
+      end
     end
   end
 
@@ -255,13 +263,6 @@ class FCM
       end
     end
     not_registered_ids
-  end
-
-  def execute_notification(body)
-    for_uri(BASE_URI) do |connection|
-      response = connection.post("/fcm/send", body.to_json)
-      build_response(response)
-    end
   end
 
   def has_canonical_id?(result)

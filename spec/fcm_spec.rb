@@ -121,62 +121,20 @@ describe FCM do
         end
       end
     end
-  end
 
-  describe '#send_with_notification_key' do
-    let(:notification_key) { 'notification_key_123' }
-    let(:message_options) do
-      {
-        notification: {
-          title: 'Group Notification',
-          body: 'This is a test group notification'
-        },
-        data: {
-          key1: 'value1',
-          key2: 'value2'
+    describe "send to condition" do
+      let(:condition) { "'foo' in topics" }
+      let(:send_v1_params) do
+        {
+          'condition' => condition,
+          'notification' => {
+            'title' => 'Breaking News',
+            'body' => 'New news story available.'
+          },
         }
-      }
-    end
+      end
 
-    it 'sends a group notification successfully' do
-      expected_body = {
-        to: notification_key,
-        notification: {
-          title: 'Group Notification',
-          body: 'This is a test group notification'
-        },
-        data: {
-          key1: 'value1',
-          key2: 'value2'
-        }
-      }
-
-      stub_request(:post, "#{FCM::BASE_URI}/fcm/send")
-        .with(
-          body: expected_body.to_json,
-          headers: mock_headers
-        )
-        .to_return(status: 200, body: '{"message_id": 987654321, "success": 3, "failure": 0}', headers: {})
-
-      response = client.send_with_notification_key(notification_key, message_options)
-
-      expect(response[:status_code]).to eq(200)
-      expect(response[:response]).to eq('success')
-      parsed_body = JSON.parse(response[:body])
-      expect(parsed_body['message_id']).to eq(987654321)
-      expect(parsed_body['success']).to eq(3)
-      expect(parsed_body['failure']).to eq(0)
-    end
-
-    it 'handles errors when sending a group notification' do
-      stub_request(:post, "#{FCM::BASE_URI}/fcm/send")
-        .to_return(status: 400, body: '{"error": "InvalidRegistration"}', headers: {})
-
-      response = client.send_with_notification_key(notification_key, message_options)
-
-      expect(response[:status_code]).to eq(400)
-      expect(response[:response]).to eq('Only applies for JSON requests. Indicates that the request could not be parsed as JSON, or it contained invalid fields.')
-      expect(JSON.parse(response[:body])['error']).to eq('InvalidRegistration')
+      include_examples "succesfuly send notification"
     end
   end
 
