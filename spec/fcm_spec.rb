@@ -138,6 +138,90 @@ describe FCM do
     end
   end
 
+  describe "#send_to_topic" do
+    let(:client) { FCM.new(api_key, json_key_path, project_name) }
+
+    let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
+
+    let(:topic) { 'news' }
+    let(:params) do
+      {
+        'topic' => topic
+      }.merge(options)
+    end
+    let(:options) do
+      {
+        'data' => {
+          'story_id' => 'story_12345'
+        }
+      }
+    end
+
+    let(:stub_fcm_send_to_topic_request) do
+      stub_request(:post, uri).with(
+        body: { 'message' => params }.to_json,
+        headers: mock_headers
+      ).to_return(
+        body: "{}",
+        headers: {},
+        status: 200,
+      )
+    end
+
+    before do
+      stub_fcm_send_to_topic_request
+    end
+
+    it 'should send notification to topic using POST to FCM server' do
+      client.send_to_topic(topic, options).should eq(
+        response: 'success', body: '{}', headers: {}, status_code: 200
+      )
+      stub_fcm_send_to_topic_request.should have_been_made.times(1)
+    end
+  end
+
+  describe "#send_to_topic_condition" do
+    let(:client) { FCM.new(api_key, json_key_path, project_name) }
+
+    let(:uri) { "#{FCM::BASE_URI_V1}#{project_name}/messages:send" }
+
+    let(:topic_condition) { "'foo' in topics" }
+    let(:params) do
+      {
+        'condition' => topic_condition
+      }.merge(options)
+    end
+    let(:options) do
+      {
+        'data' => {
+          'story_id' => 'story_12345'
+        }
+      }
+    end
+
+    let(:stub_fcm_send_to_topic_condition_request) do
+      stub_request(:post, uri).with(
+        body: { 'message' => params }.to_json,
+        headers: mock_headers
+      ).to_return(
+        body: "{}",
+        headers: {},
+        status: 200,
+      )
+    end
+
+    before do
+      stub_fcm_send_to_topic_condition_request
+    end
+
+    it 'should send notification to topic_condition using POST to FCM server' do
+      client.send_to_topic_condition(topic_condition, options).should eq(
+        response: 'success', body: '{}', headers: {}, status_code: 200
+      )
+      stub_fcm_send_to_topic_condition_request.should have_been_made.times(1)
+    end
+  end
+
   describe "#get_instance_id_info" do
     subject(:get_info) { client.get_instance_id_info(registration_id, options) }
 
