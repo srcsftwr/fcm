@@ -124,7 +124,9 @@ class FCM
 
   def topic_subscription(topic, registration_token)
     for_uri(INSTANCE_ID_API) do |connection|
-      response = connection.post("/iid/v1/#{registration_token}/rel/topics/#{topic}")
+      response = connection.post(
+        "/iid/v1/#{registration_token}/rel/topics/#{topic}"
+      )
       build_response(response)
     end
   end
@@ -134,11 +136,11 @@ class FCM
   end
 
   def batch_topic_subscription(topic, registration_tokens)
-    manage_topics_relationship(topic, registration_tokens, "Add")
+    manage_topics_relationship(topic, registration_tokens, 'Add')
   end
 
   def batch_topic_unsubscription(topic, registration_tokens)
-    manage_topics_relationship(topic, registration_tokens, "Remove")
+    manage_topics_relationship(topic, registration_tokens, 'Remove')
   end
 
   def manage_topics_relationship(topic, registration_tokens, action)
@@ -154,13 +156,13 @@ class FCM
     params = options
 
     for_uri(INSTANCE_ID_API) do |connection|
-      response = connection.get("/iid/info/" + iid_token, params)
+      response = connection.get("/iid/info/#{iid_token}", params)
       build_response(response)
     end
   end
 
   def send_to_topic(topic, options = {})
-    if topic.gsub(TOPIC_REGEX, "").length == 0
+    if topic.gsub(TOPIC_REGEX, '').zero?
       body = { 'message': { 'topic': topic }.merge(options) }
 
       for_uri(BASE_URI_V1) do |connection|
