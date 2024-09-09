@@ -101,14 +101,20 @@ fcm.send_v1(message) # or fcm.send_notification_v1(message)
 
 With [device group messaging](https://firebase.google.com/docs/cloud-messaging/notifications), you can send a single message to multiple instance of an app running on devices belonging to a group. Typically, "group" refers a set of different devices that belong to a single user. However, a group could also represent a set of devices where the app instance functions in a highly correlated manner. To use this feature, you will first need an initialised `FCM` class.
 
+The maximum number of members allowed for a notification key is 20.
+https://firebase.google.com/docs/cloud-messaging/android/device-group#managing_device_groups
+
 ### Generate a Notification Key for device group
 
 Then you will need a notification key which you can create for a particular `key_name` which needs to be uniquely named per app in case you have multiple apps for the same `project_id`. This ensures that notifications only go to the intended target app. The `create` method will do this and return the token `notification_key`, that represents the device group, in the response:
 
+`project_id` is the SENDER_ID in your cloud settings.
+https://firebase.google.com/docs/cloud-messaging/concept-options#senderid
+
 ```ruby
-params = {key_name: "appUser-Chris",
+params = { key_name: "appUser-Chris",
                 project_id: "my_project_id",
-                registration_ids: ["4", "8", "15", "16", "23", "42"]}
+                registration_ids: ["4", "8", "15", "16", "23", "42"] }
 response = fcm.create(*params.values)
 ```
 
@@ -161,7 +167,7 @@ Or you can use the `fcm.send_to_topic` helper:
 
 ```ruby
 response = fcm.send_to_topic("yourTopic",
-            notification: {body: "This is a FCM Topic Message!"})
+            notification: { body: "This is a FCM Topic Message!"} )
 ```
 
 ## Send Messages to Topics with Conditions

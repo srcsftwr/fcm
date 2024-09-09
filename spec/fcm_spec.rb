@@ -98,6 +98,21 @@ describe FCM do
       include_examples "succesfuly send notification"
     end
 
+    describe "send to multiple tokens" do
+      let(:tokens) { ['4sdsx', '4sdsy'] }
+      let(:send_v1_params) do
+        {
+          'token' => tokens,
+          'notification' => {
+            'title' => 'Breaking News',
+            'body' => 'New news story available.'
+          }
+        }
+      end
+
+      include_examples 'succesfuly send notification'
+    end
+
     describe "send to topic" do
       let(:topic) { 'news' }
       let(:send_v1_params) do
@@ -106,7 +121,7 @@ describe FCM do
           'notification' => {
             'title' => 'Breaking News',
             'body' => 'New news story available.'
-          },
+          }
         }
       end
 
@@ -130,6 +145,21 @@ describe FCM do
             'title' => 'Breaking News',
             'body' => 'New news story available.'
           },
+        }
+      end
+
+      include_examples "succesfuly send notification"
+    end
+
+    describe "send to notification_key" do
+      let(:notification_key) { 'notification_key' }
+      let(:send_v1_params) do
+        {
+          'notification_key' => notification_key,
+          'notification' => {
+            'title' => 'Breaking News',
+            'body' => 'New news story available.'
+          }
         }
       end
 
