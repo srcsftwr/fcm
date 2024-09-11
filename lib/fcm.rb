@@ -162,7 +162,7 @@ class FCM
   end
 
   def send_to_topic(topic, options = {})
-    if topic.gsub(TOPIC_REGEX, '').zero?
+    if topic.gsub(TOPIC_REGEX, '').length.zero?
       body = { 'message': { 'topic': topic }.merge(options) }
 
       for_uri(BASE_URI_V1) do |connection|
